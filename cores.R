@@ -11,6 +11,7 @@ download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/con
               "consumos.xlsx", mode = "wb")
 df<-read.xlsx2("consumos.xlsx", sheetName="Consumos", startRow = 6, header = TRUE)
 df<-filter(df, Año != "")
+df<-select(df, -contains("bio"))
 
 df1<-mutate(df, Date = as.Date(paste(Año, Mes, "1"), "%Y %B %d"))
 for(i in 5:11)  {
@@ -33,6 +34,17 @@ for(j in 1:nrow(lista)){
 }
 df1ma<-select(df1ma, -ind)
 
+ts<-ts(filter(df1, CCAA == "España")$Gasóleo, frequency=12, start = c(df1$Año[1],1))
+comp<-decompose(ts, type = "multiplicative")
+var.estacional<-data.frame(mes=format(ISOdate(2000, 1:12, 1), "%B"), Gasóleo=comp$figure)
+var.estacional$mes<-factor(var.estacional$mes, levels=format(ISOdate(2000, 1:12, 1), "%B"))
+
+ts<-ts(filter(df1, CCAA == "España")$Gasolina, frequency=12, start = c(df1$Año[1],1))
+comp<-decompose(ts, type = "multiplicative")
+var.estacional$Gasolina<-comp$figure
+var.estacional.g<-gather(data=var.estacional, key=Combustible, value=IndiceMensual, 2:3)
+var.estacional[,2:3]<-round(var.estacional[,2:3],3)
+
 pdf("CORES.pdf")
       
 plotCCAA("España", c("2000-01-01", "end"))
@@ -42,5 +54,13 @@ plotCCAA("Cataluña", c("2000-01-01", "end"))
 plotComb("Gasóleo", c("2000-01-01", "end"))
 
 plotComb("Gasolina", c("2000-01-01", "end"))
+
+p<-ggplot(var.estacional.g, aes(x=mes, y=IndiceMensual, group=Combustible, color=Combustible))
+p<-p+geom_line(size=2)
+print(p)
+
+grid.newpage()
+
+grid.table(var.estacional, rows=rep("",12))
 
 dev.off()
