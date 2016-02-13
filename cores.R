@@ -1,16 +1,20 @@
-require(xlsx, quietly = TRUE)
+require(openxlsx, quietly = TRUE)
 require(dplyr, quietly = TRUE)
 require(ggplot2, quietly = TRUE)
 require(stringr, quietly = TRUE)
 require(tidyr, quietly = TRUE)
 require(TTR, quietly = TRUE)
+require(grid, quietly = TRUE)
+require(gridExtra, quietly = TRUE)
+require(forecast, quietly = TRUE)
 if(!exists("plotCCAA")) source('plotCCAA.R', encoding="UTF-8")
 if(!exists("plotComb")) source('plotCombustible.R', encoding="UTF-8")
 
 download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp-ccaa-provincias.xlsx", 
               "consumos.xlsx", mode = "wb")
-df<-read.xlsx2("consumos.xlsx", sheetName="Consumos", startRow = 6, header = TRUE)
+df<-read.xlsx("consumos.xlsx", sheet="Consumos", startRow = 6)
 df<-filter(df, Año != "")
+df<-filter(df, Año > 1997 & Año < 2020)
 df<-select(df, -contains("bio"))
 
 df1<-mutate(df, Date = as.Date(paste(Año, Mes, "1"), "%Y %B %d"))
@@ -20,7 +24,7 @@ for(i in 5:11)  {
 df1[,5:11][is.na(df1[,5:11])]<-0
 names(df1)<- str_replace_all(names(df1), "[^[:alnum:]]", "")
 df1<-df1[, c(12, 1:11)]
-levels(df1$CCAA) <- gsub("Total Nacional", "España", levels(df1$CCAA))
+df1$CCAA <- gsub("Total Nacional", "España", df1$CCAA)
 df1<-mutate(df1, Gasolina = Gasolina97IO + Gasolina95IO + Gasolina98IO)
 df1<-mutate(df1, Gasóleo = GasóleoA + GasóleoB + GasóleoC)
 
@@ -56,7 +60,9 @@ plotComb("Gasóleo", c("2000-01-01", "end"))
 plotComb("Gasolina", c("2000-01-01", "end"))
 
 p<-ggplot(var.estacional.g, aes(x=mes, y=IndiceMensual, group=Combustible, color=Combustible))
-p<-p+geom_line(size=2)
+p<-p+geom_line(size=1.5)
+p<-p+geom_hline(yintercept=1)
+p<-p+theme(axis.text.x=element_text(angle = 45, hjust = 1))
 print(p)
 
 grid.newpage()

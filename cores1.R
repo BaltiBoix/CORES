@@ -1,5 +1,5 @@
 options( java.parameters = "-Xmx4g" )
-require(xlsx, quietly = TRUE)
+require(openxlsx, quietly = TRUE)
 require(dplyr, quietly = TRUE)
 require(ggplot2, quietly = TRUE)
 require(stringr, quietly = TRUE)
@@ -7,47 +7,48 @@ require(tidyr, quietly = TRUE)
 require(TTR, quietly = TRUE)
 if(!exists("plotCCAA")) source('plotCCAA.R', encoding="UTF-8")
 if(!exists("plotComb")) source('plotCombustible.R', encoding="UTF-8")
+if(!exists("plotProducto")) source('plotProducto.R', encoding="UTF-8")
 
 if(!file.exists("consumos-pp.xlsx")) 
       download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp.xlsx", 
       "consumos-pp.xlsx", mode = "wb")
 
-dftemp<-read.xlsx2("consumos-pp.xlsx", sheetName="GLPs", startRow = 6, header = TRUE)
+dftemp<-read.xlsx("consumos-pp.xlsx", sheet="GLPs", startRow = 6)
 dftemp<-filter(dftemp, Mes != "")
 names(dftemp)<- tolower(str_replace_all(names(dftemp), "[^[:alnum:]]", ""))
 names(dftemp)[3:7]<-c("glpenvasado", "glpgranel", "glpautomocion", "glpotros", "totalglps")
 
 df<-dftemp
 
-dftemp<-read.xlsx2("consumos-pp.xlsx", sheetName = "Gasolinas", startRow = 6, colIndex = 1:11, header = TRUE)
+dftemp<-read.xlsx("consumos-pp.xlsx", sheet = "Gasolinas", startRow = 6, cols = 1:11)
 dftemp<-filter(dftemp, Mes != "")
 names(dftemp)<- tolower(str_replace_all(names(dftemp), "[^[:alnum:]]", ""))
 names(dftemp)[11]<-"totalgasolinas"
 
 df<-merge(df, dftemp)
 
-dftemp<-read.xlsx2("consumos-pp.xlsx", sheetName = "Querosenos", startRow = 6, colIndex = 1:5, header = TRUE)
+dftemp<-read.xlsx("consumos-pp.xlsx", sheet = "Querosenos", startRow = 6, cols = 1:5)
 dftemp<-filter(dftemp, Mes != "")
 names(dftemp)<- tolower(str_replace_all(names(dftemp), "[^[:alnum:]]", ""))
 names(dftemp)[3:5]<-c("kerosenoaviacion", "kerosenootros", "totalkerosenos")
 
 df<-merge(df, dftemp)
 
-dftemp<-read.xlsx2("consumos-pp.xlsx", sheetName = "Gasoleos", startRow = 6, colIndex = 1:10, header = TRUE)
+dftemp<-read.xlsx("consumos-pp.xlsx", sheet = "Gasoleos", startRow = 6, cols = 1:10)
 dftemp<-filter(dftemp, Mes != "")
 names(dftemp)<- tolower(str_replace_all(names(dftemp), "[^[:alnum:]]", ""))
 names(dftemp)[10]<-"totalgasoleos"
 
 df<-merge(df, dftemp)
 
-dftemp<-read.xlsx2("consumos-pp.xlsx", sheetName = "Fueloleos", startRow = 6, colIndex = 1:7, header = TRUE)
+dftemp<-read.xlsx("consumos-pp.xlsx", sheet = "Fueloleos", startRow = 6, cols = 1:7)
 dftemp<-filter(dftemp, Mes != "")
 names(dftemp)<- tolower(str_replace_all(names(dftemp), "[^[:alnum:]]", ""))
 names(dftemp)[7]<-"totalfueloleos"
 
 df<-merge(df, dftemp)
 
-dftemp<-read.xlsx2("consumos-pp.xlsx", sheetName = "Otros Productos", startRow = 6, colIndex = 1:7, header = TRUE)
+dftemp<-read.xlsx("consumos-pp.xlsx", sheet = "Otros Productos", startRow = 6, cols = 1:7)
 dftemp<-filter(dftemp, Mes != "")
 names(dftemp)<- tolower(str_replace_all(names(dftemp), "[^[:alnum:]]", ""))
 names(dftemp)[7]<-"totalotros"
