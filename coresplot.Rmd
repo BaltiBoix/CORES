@@ -1,3 +1,13 @@
+---
+title: "CoresPlot"
+author: "Balti Boix"
+date: "21 de marzo de 2016"
+output: html_document
+---
+
+Primero cargamos los paquetes de R que vamos a utilizar
+
+```{r}
 require(openxlsx, quietly = TRUE)
 require(dplyr, quietly = TRUE)
 require(ggplot2, quietly = TRUE)
@@ -7,16 +17,25 @@ require(TTR, quietly = TRUE)
 require(grid, quietly = TRUE)
 require(gridExtra, quietly = TRUE)
 require(forecast, quietly = TRUE)
+require(plotly, quietly = TRUE)
 if(!exists("plotCCAA")) source('plotCCAA.R', encoding="UTF-8")
 if(!exists("plotComb")) source('plotCombustible.R', encoding="UTF-8")
+```
 
+Leemos el fichero XLS de la WEB de CORES
+
+```{r, echo=FALSE}
 download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp-ccaa-provincias.xlsx", 
               "consumos.xlsx", mode = "wb")
 df<-read.xlsx("consumos.xlsx", sheet="Consumos", startRow = 6)
 df<-filter(df, Año != "")
 df<-filter(df, Año > 1997 & Año < 2020)
 df<-select(df, -contains("bio"))
+```
 
+Adaptamos los datos a R y calculamos la media movil a 12 meses
+
+```{r}
 df1<-mutate(df, Date = as.Date(paste(Año, Mes, "1"), "%Y %B %d"))
 for(i in 5:11)  {
       df1[,i]<-round(as.numeric(as.character(df1[,i])),0)
@@ -37,46 +56,10 @@ for(j in 1:nrow(lista)){
       }
 }
 df1ma<-select(df1ma, -ind)
+```
 
-ts<-ts(filter(df1, CCAA == "España")$Gasóleo, frequency=12, start = c(df1$Año[1],1))
-comp<-decompose(ts, type = "multiplicative")
-var.estacional<-data.frame(mes=format(ISOdate(2000, 1:12, 1), "%B"), Gasóleo=comp$figure)
-var.estacional$mes<-factor(var.estacional$mes, levels=format(ISOdate(2000, 1:12, 1), "%B"))
-
-ts<-ts(filter(df1, CCAA == "España")$Gasolina, frequency=12, start = c(df1$Año[1],1))
-comp<-decompose(ts, type = "multiplicative")
-var.estacional$Gasolina<-comp$figure
-var.estacional.g<-gather(data=var.estacional, key=Combustible, value=IndiceMensual, 2:3)
-var.estacional[,2:3]<-round(var.estacional[,2:3],3)
-
+```{r}
 fechas<-c("2014-01-01", "end")
-pdf("CORES.pdf")
-      
-plotCCAA("España", fechas)
-
-plotCCAA("Cataluña", fechas)
-
-plotComb("Gasóleo", fechas)
-
-plotComb("Gasolina", fechas)
-
-p<-ggplot(var.estacional.g, aes(x=mes, y=IndiceMensual, group=Combustible, color=Combustible))
-p<-p+geom_line(size=1.5)
-p<-p+geom_hline(yintercept=1)
-p<-p+theme(axis.text.x=element_text(angle = 45, vjust = 1))
-print(p)
-
-grid.newpage()
-
-grid.table(var.estacional, rows=rep("",12))
-
-dev.off()
-
-CodCCAA<-read.csv('CodigoCCAA.csv', header=T, encoding = 'UTF-8', stringsAsFactors = F)
-Gdf<-filter(df1, Año==2015 & Mes=="enero" & Provincia=="Total" & !CCAA=="España")
-Gdf<-select(Gdf, CCAA, Gasolina, Gasóleo)
-Gdf<-left_join(Gdf, CodCCAA)
-G<-gvisGeoChart(Gdf,locationvar = "Codigo", c("Gasolina", "Gasóleo"), 
-                options = list(region="ES", resolution="provinces", displayMode="provinces", width=1200, height=800))
-plot(G)
+p<-plotCCAA("España", fechas)
+```
 

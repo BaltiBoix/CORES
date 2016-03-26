@@ -35,7 +35,7 @@ plotCCAA<-function(CCAAstring, Datelims=NULL){
                    axis.title.y = element_text(size = 14),
                    plot.title = element_text(size=20),
                    axis.text.y = element_text(size=12),
-                   axis.text.x = element_text(size=12),
+                   axis.text.x = element_text(size=12, angle = 45, hjust = 1),
                    strip.text.x = element_text(size=12),
                    strip.background = element_rect(colour = "black", size=0.25),
                    panel.border = element_rect(fill=NA, colour = "black", size=0.5),
@@ -43,5 +43,5 @@ plotCCAA<-function(CCAAstring, Datelims=NULL){
                    legend.text = element_text(size=14),
                    legend.position = "bottom")
       p<-p+scale_colour_manual(values = c("valor mensual" = "gray", "media movil 12 meses" = "blue"))
-      print(p)
+      p
 }
