@@ -59,74 +59,30 @@ pp.df<- pp.df %>%
       select(fecha, everything()) %>%
       mutate_each(funs(consumo2kt=ifelse(is.na(.), NA, ./1000)), -c(1:3))
 
-saveRDS(pp.df, file = 'data/consumos-pp.RDS')      
+saveRDS(pp.df, file = 'data/consumos-pp.RDS') 
 
-ppg.df<-pp.df %>%
-      gather(key=gen.par, consumo.kt, -c(1:3)) %>%
-      separate(gen.par, into = c("familia", "producto"), sep = "\\.") %>%
-      select(-anyo, -mes)
+###########################################################################
+
+require(dplyr, quietly = TRUE)
+require(ggplot2, quietly = TRUE)
+require(tidyr, quietly = TRUE)
+require(zoo, quietly = TRUE)
+
+pp.df<-readRDS('data/consumos-pp.RDS')
+
+# ppg.df<-pp.df %>%
+#      gather(key=gen.par, consumo.kt, -c(1:3)) %>%
+#      separate(gen.par, into = c("familia", "producto"), sep = "\\.") %>%
+#      select(-anyo, -mes)
 
 
-zpp<-pp.df %>% select(fecha, -anyo, -mes, starts_with("GOIL"))
+zpp<-pp.df %>% select(fecha, -anyo, -mes, one_of(names(pp.df)[sample(4:38,4)]))
                   
 zpp<-zoo(x = select(zpp, -fecha), order.by=zpp$fecha)
 
-autoplot(zpp) + facet_free() + geom_smooth()
+nor<-sapply(window(zpp, start = start(zpp), end = start(zpp)+11/12),function(x) ifelse(is.na(100/mean(x)), 1, 100/mean(x)))
 
+breaks.zpp = start(zpp)+seq.int(0,(end(zpp)-start(zpp))*12, length.out = 12)/12
 
+autoplot(zpp,na.rm = TRUE) + facet_free() + scale_x_yearmon(breaks=breaks.zpp, format = "%b %Y") + geom_smooth(na.rm = TRUE)
 
-for(i in 3:37){
-      for(j in 1:nrow(df)){
-            if(df[j, i] == 0) {
-                  df[j, i]<-NA
-            }else{
-                  break()
-            }
-      }
-}
-
-dfma<-df
-for(i in 3:37){
-      dfma[,i]<-round(SMA(dfma[,i], n=12),0)
-}
-
-
-pdf("CORES1.pdf")
-
-dfg<-gather(data=df, key=producto, value=consumomensual, 3:37)
-dfmag<-gather(data=dfma, key=producto, value=consumomensual, 3:37)
-
-dfg<-filter(dfg, consumomensual > 10)
-dfmag<-filter(dfmag, consumomensual > 10)
-
-df1g<-filter(dfg, substring(producto,1,5) == "total")
-df1mag<-filter(dfmag, substring(producto,1,5) == "total")
-
-plotProducto()
-
-df1g<-filter(dfg, grepl("glp", producto))
-df1mag<-filter(dfmag, grepl("glp", producto))
-
-plotProducto()
-
-df1g<-filter(dfg, grepl("gasolina", producto))
-df1mag<-filter(dfmag, grepl("gasolina", producto))
-
-plotProducto()
-
-df1g<-filter(dfg, producto %in% names(df)[20:27])
-df1mag<-filter(dfmag, producto %in% names(df)[20:27])
-
-plotProducto()
-
-df1g<-filter(dfg, producto %in% names(df)[28:32])
-df1mag<-filter(dfmag, producto %in% names(df)[28:32])
-
-plotProducto()
-
-df1g<-filter(dfg, producto %in% names(df)[33:37])
-df1mag<-filter(dfmag, producto %in% names(df)[33:37])
-
-plotProducto()
-
-dev.off()
