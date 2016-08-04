@@ -1,0 +1,67 @@
+---
+title: "Predicción del Consumo de Combustibles"
+author: "Balti Boix"
+date: "11 de abril de 2016"
+output: html_document
+encoding: UTF-8
+---
+
+## Abstract   
+
+      Intento de correlacionar el Consumo de Combustibles en España con índices de entrada
+      de pedidos que publica el INE mensualmente. El objetivo final es predecir el consumo.
+
+#### Load required R packages
+
+```{r message=FALSE}
+require(dplyr, quietly = TRUE)
+require(zoo, quietly = TRUE)
+require(tidyr, quietly = TRUE)
+require(lubridate, quietly = TRUE)
+```
+
+#### Load RDS files with the data used
+
+```{r, echo=FALSE}
+cr1<-readRDS(file='../shinyCORES/data/consumos-pp.RDS')
+cr2<-readRDS(file='../shinyCORES/data/consumos-pp-ccaa-provincias.RDS')
+iep<-readRDS(file='../INE/iep.RDS')
+```
+
+#### Prepare the data frame with only two columns 
+
+```{r}
+tmp1<- cr1 %>% select(fecha, GSNA.auto) %>% mutate(fc=as.character(fecha))
+tmp2<- iep %>% filter(Índice.y.tasas == "Índice" & Destino.económico.de.los.bienes == "Total industria") %>%
+      select(fecha=Periodo, iepTI=value) %>% mutate(fc=as.character(fecha))
+df<-right_join(tmp1, tmp2, by=c("fc"))
+df<- df %>% select(fecha=fecha.x, everything(),-fc, -fecha.y) %>% arrange(fecha)
+```
+
+#### Seasonaly adjust the gasoline comsumption and normalize base 2010
+
+```{r}
+z<-zoo(x=df$GSNA.auto, order.by = df$fecha)
+z.stl<-stl(z, s.window = 'per', robust = TRUE)
+df$GSNA.auto.seasadj<-coredata(seasadj(z.stl))
+mean.2010<-df %>% filter(year(fecha) == 2010) %>% select(GSNA.auto.seasadj) %>% sum(.)/12
+df$GSNA.auto.seasadj.norm<-df$GSNA.auto.seasadj/mean.2010*100
+```
+
+#### exploratory data analysis
+
+```{r}
+g<-ggplot(df, aes(x=fecha, y=GSNA.auto))
+g<-g+geom_line()
+g<-g+geom_line(aes(x=fecha, y=GSNA.auto.seasadj), color='blue')
+g<-g+scale_x_yearmon()
+print(g)
+
+g<-ggplot(df, aes(x=fecha, y=c(NA, diff(GSNA.auto.seasadj.norm,1))))
+g<-g+geom_line()
+g<-g+geom_line(aes(x=fecha, y=c(NA,diff(iepTI,1))), color='blue')
+g<-g+scale_x_yearmon()
+print(g)
+
+```
+

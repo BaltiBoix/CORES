@@ -1,7 +1,7 @@
 require(openxlsx, quietly = TRUE)
 require(dplyr, quietly = TRUE)
 require(zoo, quietly = TRUE)
-#require(tidyr, quietly = TRUE)
+require(tidyr, quietly = TRUE)
 #require(lattice, quietly = TRUE)
 
 #download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp-ccaa-provincias.xlsx", 

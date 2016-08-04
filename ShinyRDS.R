@@ -1,15 +1,28 @@
 require(openxlsx, quietly = TRUE)
 require(dplyr, quietly = TRUE)
-require(ggplot2, quietly = TRUE)
-require(tidyr, quietly = TRUE)
-#require(stringr, quietly = TRUE)
 require(zoo, quietly = TRUE)
+require(tidyr, quietly = TRUE)
+
+xls.file<-"../CORES/consumos.xlsx"
+
+download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp-ccaa-provincias.xlsx", 
+              xls.file, mode = "wb")
+df<-read.xlsx("../CORES/consumos.xlsx", sheet="Consumos", startRow = 6)
+df<-filter(df, Año > 1997 & Año < 2020)
+df<-select(df, -contains("bio"))
+names(df)<-c("Anyo","Mes","CCAA","Provincia","GS97","GS95","GS98","GOA","GOB","GOC","FOBIA")
+
+df<-mutate(df, fecha=as.yearmon(paste0(Mes,Anyo)))
+df<-select(df, c(12,3:11))
+df[is.na(df)] <- 0
+df[,4:10]<-df[,4:10]/1000
+saveRDS(df, file = '../shinyCORES/data/consumos-pp-ccaa-provincias.RDS')
+
 
 xls.file<-"../CORES/consumos-pp.xlsx"
 
-if(!file.exists("consumos-pp.xlsx")) 
-      download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp.xlsx", 
-      xls.file, mode = "wb")
+download.file("http://www.cores.es/sites/default/files/archivos/estadisticas/consumos-pp.xlsx", 
+              xls.file, mode = "wb")
 
 dftemp<-read.xlsx(xls.file, sheet="GLPs", startRow = 6)
 dftemp<-filter(dftemp, Mes != "")
@@ -59,46 +72,4 @@ pp.df<- pp.df %>%
       select(fecha, everything()) %>%
       mutate_each(funs(consumo2kt=ifelse(is.na(.), NA, ./1000)), -c(1:3))
 
-saveRDS(pp.df, file = 'data/consumos-pp.RDS') 
-
-###########################################################################
-
-require(dplyr, quietly = TRUE)
-require(ggplot2, quietly = TRUE)
-require(tidyr, quietly = TRUE)
-require(zoo, quietly = TRUE)
-
-pp.df<-readRDS('data/consumos-pp.RDS')
-
-# ppg.df<-pp.df %>%
-#      gather(key=gen.par, consumo.kt, -c(1:3)) %>%
-#      separate(gen.par, into = c("familia", "producto"), sep = "\\.") %>%
-#      select(-anyo, -mes)
-
-
-zpp<-pp.df %>% select(fecha, -anyo, -mes, one_of(names(pp.df)[sample(4:38,4)]))
-                  
-zpp<-zoo(x = select(zpp, -fecha), order.by=zpp$fecha)
-
-nor<-sapply(window(zpp, start = start(zpp), end = start(zpp)+11/12),function(x) ifelse(is.na(100/mean(x)), 1, 100/mean(x)))
-
-breaks.zpp = start(zpp)+seq.int(0,(end(zpp)-start(zpp))*12, length.out = 12)/12
-
-autoplot(zpp,na.rm = TRUE) + facet_free() + scale_x_yearmon(breaks=breaks.zpp, format = "%b %Y") + geom_smooth(na.rm = TRUE)
-
-z<-zoo(x=pp.df$GSNA.auto, order.by = pp.df$fecha)
-z.stl<-stl(z, s.window = 7, robust = TRUE)
-plot(z.stl)
-zt<-window(z, end = end(z)-1)
-z.stl<-forecast(stlf(zt, s.window = 7, robust = TRUE))
-z.gg<-funggcast(z, z.stl)
-
-xlim.Sel<-c(as.yearmon(paste0(2006,"-01-01")), as.yearmon(paste0(2018,"-01-01")))
-p1a<-ggplot(data=z.gg,aes(x=date,y=observed)) 
-p1a<-p1a+geom_line(col='red')
-p1a<-p1a+geom_line(aes(y=fitted),col='blue')
-p1a<-p1a+geom_line(aes(y=forecast))+geom_ribbon(aes(ymin=lo95,ymax=hi95),alpha=.25)
-p1a<-p1a+scale_x_yearmon(limits=xlim.Sel)
-p1a<-p1a+scale_y_continuous(name='Units of Y')
-p1a<-p1a + ggtitle('STL Fit to Simulated Data\n (black=forecast, blue=fitted, red=data, shadow=95% conf. interval)')
-p1a
+saveRDS(pp.df, file = '../shinyCORES/data/consumos-pp.RDS') 
